@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. Start a Cinderwood Hunt, read Ashmaw's intent, use Brace against Cinder Burst, win loot, equip a relic, and purchase a level-two specialty. `Test rare loot` makes the next victory award Stormglass Fang.
+Open the local URL printed by Vite. Choose an encounter (Ashmaw or the Glasswing Moth), then Begin Hunt. Read the enemy's intent, use Brace against telegraphed hits, win loot, equip a relic, and purchase a level-two specialty. `Test rare loot` makes the next victory award Stormglass Fang.
 
 ## Verify
 

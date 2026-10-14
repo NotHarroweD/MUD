@@ -75,7 +75,7 @@ window.render_game_to_text = () =>
     coordinateSystem: "canvas origin is top-left; illustrated actors appear left (player) and right (enemy)",
     phase: state.phase,
     player: { hp: state.player.hp, maxHp: state.player.maxHp, power: state.player.basePower, guard: state.player.baseGuard, level: state.player.level, gold: state.player.gold },
-    enemy: { name: state.enemy.name, hp: state.enemy.hp, maxHp: state.enemy.maxHp, intent: state.enemy.intent },
+    enemy: { id: state.enemy.id, name: state.enemy.name, hp: state.enemy.hp, maxHp: state.enemy.maxHp, intent: state.enemy.intent },
     turn: state.turn,
     braced: state.braced,
     rareLootTest: state.guaranteedRare,

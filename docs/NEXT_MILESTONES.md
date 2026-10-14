@@ -17,9 +17,9 @@ One developer playthrough is not a usability study. The prototype does not yet d
 ## Priority order
 
 1. **Test with players.** Observe five new players completing the hunt. Measure whether they recognize Cinder Burst and understand item value without explanation.
-2. **Add encounter variety.** Create two original enemy behaviors that force different choices, then add a compact encounter selector.
-3. **Make loot decisions richer.** Add item traits with tradeoffs, duplicate handling/salvage, and a visible collection log before any player trading.
-4. **Add a specialization objective.** Track a simple hunt achievement and introduce a second upgrade branch that has a measurable niche.
+2. **Add encounter variety.** _Implemented 2026-10-13 (balance unverified):_ Glasswing Moth adds a veil-and-Dust-Bite behavior that forces a strike-or-heal choice, and a compact selector switches encounters between hunts. Still to verify: browser QA and playtest results.
+3. **Make loot decisions richer.** _Partially implemented 2026-10-13:_ unequipped relics can be sold for gold, and a collection log tracks discoveries. Still open: item traits with tradeoffs and any duplicate-handling rule beyond selling.
+4. **Add a specialization objective.** _Implemented 2026-10-13:_ per-encounter win milestones (Cinder Breaker, Veil Piercer) award titles and gold, and Veilsight is a second upgrade branch whose niche is the Glasswing Moth. Still to verify: whether players pursue these objectives.
 5. **Validate balance with data.** Instrument local encounter outcomes and action choices; tune only after observing dominant actions.
 6. **Plan authoritative services.** Specify accounts, encounter seed validation, inventories, loot, currency, and leaderboards before introducing persistence or multiplayer.
 

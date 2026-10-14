@@ -1,7 +1,8 @@
 export type Rarity = "common" | "rare";
-export type Intent = "bite" | "cinder-burst";
+export type Intent = "bite" | "cinder-burst" | "veil" | "dust-bite";
 export type Phase = "idle" | "active" | "victory" | "defeat";
-export type UpgradeId = "edgecraft" | "bulwark";
+export type UpgradeId = "edgecraft" | "bulwark" | "veilsight";
+export type EncounterId = "ashmaw" | "glasswing";
 
 export interface Item {
   id: string;
@@ -27,6 +28,7 @@ export interface Player {
 }
 
 export interface Enemy {
+  id: EncounterId;
   name: string;
   hp: number;
   maxHp: number;
@@ -35,21 +37,27 @@ export interface Enemy {
 
 export interface GameState {
   phase: Phase;
+  encounterId: EncounterId;
   player: Player;
   enemy: Enemy;
   turn: number;
   braced: boolean;
   guaranteedRare: boolean;
   victories: number;
+  encounterWins: Record<EncounterId, number>;
+  titles: string[];
+  discovered: string[];
   lastReward?: Item;
   log: string[];
 }
 
 export type GameAction =
   | { type: "start" }
+  | { type: "select-encounter"; encounterId: EncounterId }
   | { type: "strike" }
   | { type: "brace" }
   | { type: "focus" }
   | { type: "equip"; itemId: string }
+  | { type: "sell"; itemId: string }
   | { type: "upgrade"; upgradeId: UpgradeId }
   | { type: "toggle-guaranteed-rare" };

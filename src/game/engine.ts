@@ -1,9 +1,11 @@
-import { createAshmaw, starterItem } from "./content";
+import { createEncounter, encounters, milestones, starterItem, upgradeLabels } from "./content";
 import { chooseLoot } from "./loot";
-import type { GameAction, GameState, Intent, Item, Player, UpgradeId } from "./types";
+import type { Enemy, GameAction, GameState, Intent, Item, Player, UpgradeId } from "./types";
 
 const XP_PER_LEVEL = 10;
 const UPGRADE_COST = 8;
+const VEILED_STRIKE_DAMAGE = 1;
+const VEILSIGHT_BONUS = 2;
 
 const addLog = (state: GameState, entry: string): GameState => ({
   ...state,
@@ -19,49 +21,86 @@ export const powerOf = (player: Player): number =>
 export const guardOf = (player: Player): number =>
   player.baseGuard + equippedItem(player).guard + (player.upgrades.includes("bulwark") ? 1 : 0);
 
-const enemyDamage = (intent: Intent): number => (intent === "cinder-burst" ? 5 : 2);
+const enemyDamage: Record<Intent, number> = {
+  bite: 2,
+  "cinder-burst": 5,
+  "dust-bite": 4,
+  veil: 0,
+};
 
-const nextIntent = (intent: Intent): Intent => (intent === "cinder-burst" ? "bite" : "cinder-burst");
+const intentName: Record<Intent, string> = {
+  bite: "Bite",
+  "cinder-burst": "Cinder Burst",
+  "dust-bite": "Dust Bite",
+  veil: "Veil",
+};
+
+const nextIntent = (enemy: Enemy): Intent => {
+  const pattern = encounters[enemy.id].pattern;
+  const index = pattern.indexOf(enemy.intent);
+  return pattern[(index + 1) % pattern.length];
+};
 
 const rewardVictory = (state: GameState): GameState => {
   const reward = chooseLoot(state.guaranteedRare, state.victories);
   const experience = state.player.experience + XP_PER_LEVEL;
   const level = Math.max(1, Math.floor(experience / XP_PER_LEVEL) + 1);
+  const encounterWins = {
+    ...state.encounterWins,
+    [state.encounterId]: state.encounterWins[state.encounterId] + 1,
+  };
+  const earned = milestones.filter(
+    (milestone) =>
+      milestone.encounterId === state.encounterId &&
+      encounterWins[state.encounterId] >= milestone.wins &&
+      !state.titles.includes(milestone.id),
+  );
+  const milestoneGold = earned.reduce((sum, milestone) => sum + milestone.reward, 0);
   const player = {
     ...state.player,
     experience,
     level,
-    gold: state.player.gold + 12,
+    gold: state.player.gold + 12 + milestoneGold,
     inventory: [...state.player.inventory, reward],
   };
+  const victory: GameState = {
+    ...state,
+    phase: "victory",
+    player,
+    victories: state.victories + 1,
+    encounterWins,
+    titles: [...state.titles, ...earned.map((milestone) => milestone.id)],
+    discovered: state.discovered.includes(reward.id) ? state.discovered : [...state.discovered, reward.id],
+    lastReward: reward,
+    braced: false,
+  };
+  const withVictoryLog = addLog(victory, `Victory! +${XP_PER_LEVEL} experience, +12 gold, and ${reward.name}.`);
 
-  return addLog(
-    {
-      ...state,
-      phase: "victory",
-      player,
-      victories: state.victories + 1,
-      lastReward: reward,
-      braced: false,
-    },
-    `Victory! +${XP_PER_LEVEL} experience, +12 gold, and ${reward.name}.`,
+  return earned.reduce(
+    (current, milestone) => addLog(current, `Milestone reached: ${milestone.name}. +${milestone.reward} gold.`),
+    withVictoryLog,
   );
 };
 
 const resolveEnemyTurn = (state: GameState): GameState => {
-  const rawDamage = enemyDamage(state.enemy.intent);
-  const damage = state.braced ? Math.max(0, rawDamage - guardOf(state.player)) : rawDamage;
+  const intent = state.enemy.intent;
+  const rawDamage = enemyDamage[intent];
+  const damage =
+    rawDamage === 0 || !state.braced ? rawDamage : Math.max(0, rawDamage - guardOf(state.player));
   const hp = Math.max(0, state.player.hp - damage);
-  const intentName = state.enemy.intent === "cinder-burst" ? "Cinder Burst" : "Bite";
+  const message =
+    intent === "veil"
+      ? `${state.enemy.name} veils itself. Its next strike will be a Dust Bite.`
+      : `${state.enemy.name} uses ${intentName[intent]} for ${damage} damage${state.braced ? " after your Brace" : ""}.`;
   const afterHit = addLog(
     {
       ...state,
       player: { ...state.player, hp },
-      enemy: { ...state.enemy, intent: nextIntent(state.enemy.intent) },
+      enemy: { ...state.enemy, intent: nextIntent(state.enemy) },
       turn: state.turn + 1,
       braced: false,
     },
-    `Ashmaw uses ${intentName} for ${damage} damage${state.braced ? " after your Brace" : ""}.`,
+    message,
   );
 
   return hp === 0 ? addLog({ ...afterHit, phase: "defeat" }, "You fall back to camp. The hunt can begin again.") : afterHit;
@@ -73,11 +112,18 @@ const takeTurn = (state: GameState, action: "strike" | "brace" | "focus"): GameS
   }
 
   if (action === "strike") {
-    const damage = powerOf(state.player);
+    const veiled = state.enemy.intent === "veil";
+    const veiledDamage =
+      VEILED_STRIKE_DAMAGE + (state.player.upgrades.includes("veilsight") ? VEILSIGHT_BONUS : 0);
+    const damage = veiled ? veiledDamage : powerOf(state.player);
     const hp = Math.max(0, state.enemy.hp - damage);
     const afterStrike = addLog(
       { ...state, enemy: { ...state.enemy, hp } },
-      `You Strike for ${damage} damage.`,
+      veiled
+        ? state.player.upgrades.includes("veilsight")
+          ? `Veilsight finds a gap in the veil for ${damage} damage.`
+          : `Your Strike only scratches the veil for ${damage} damage.`
+        : `You Strike for ${damage} damage.`,
     );
     return hp === 0 ? rewardVictory(afterStrike) : resolveEnemyTurn(afterStrike);
   }
@@ -108,12 +154,32 @@ const buyUpgrade = (state: GameState, upgradeId: UpgradeId): GameState => {
         upgrades: [...state.player.upgrades, upgradeId],
       },
     },
-    `${upgradeId === "edgecraft" ? "Edgecraft" : "Bulwark"} unlocked.`,
+    `${upgradeLabels[upgradeId].name} unlocked.`,
+  );
+};
+
+const sellItem = (state: GameState, itemId: string): GameState => {
+  const item = state.player.inventory.find((candidate) => candidate.id === itemId);
+  if (state.phase === "active" || !item || item.id === state.player.equippedId) {
+    return state;
+  }
+
+  return addLog(
+    {
+      ...state,
+      player: {
+        ...state.player,
+        gold: state.player.gold + item.value,
+        inventory: state.player.inventory.filter((candidate) => candidate.id !== itemId),
+      },
+    },
+    `Sold ${item.name} for ${item.value} gold.`,
   );
 };
 
 export const createInitialState = (): GameState => ({
   phase: "idle",
+  encounterId: "ashmaw",
   player: {
     hp: 14,
     maxHp: 14,
@@ -126,12 +192,15 @@ export const createInitialState = (): GameState => ({
     inventory: [starterItem],
     upgrades: [],
   },
-  enemy: createAshmaw(),
+  enemy: createEncounter("ashmaw"),
   turn: 1,
   braced: false,
   guaranteedRare: false,
   victories: 0,
-  log: ["Choose Begin Hunt. Watch Ashmaw's intent before committing."],
+  encounterWins: { ashmaw: 0, glasswing: 0 },
+  titles: [],
+  discovered: [starterItem.id],
+  log: ["Choose an encounter, then Begin Hunt. Watch its intent before committing."],
 });
 
 export const reduceGame = (state: GameState, action: GameAction): GameState => {
@@ -145,12 +214,27 @@ export const reduceGame = (state: GameState, action: GameAction): GameState => {
           ...state,
           phase: "active",
           player: { ...state.player, hp: state.player.maxHp },
-          enemy: createAshmaw(),
+          enemy: createEncounter(state.encounterId),
           turn: 1,
           braced: false,
           lastReward: undefined,
         },
-        "The Cinderwood Hunt begins. Ashmaw is gathering a Cinder Burst.",
+        encounters[state.encounterId].opening,
+      );
+    case "select-encounter":
+      if (state.phase === "active") {
+        return state;
+      }
+      return addLog(
+        {
+          ...state,
+          phase: "idle",
+          encounterId: action.encounterId,
+          enemy: createEncounter(action.encounterId),
+          turn: 1,
+          braced: false,
+        },
+        `${encounters[action.encounterId].name} is ready to hunt.`,
       );
     case "strike":
     case "brace":
@@ -166,6 +250,8 @@ export const reduceGame = (state: GameState, action: GameAction): GameState => {
       );
     case "upgrade":
       return buyUpgrade(state, action.upgradeId);
+    case "sell":
+      return sellItem(state, action.itemId);
     case "toggle-guaranteed-rare":
       return addLog(
         { ...state, guaranteedRare: !state.guaranteedRare },

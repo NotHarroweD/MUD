@@ -54,14 +54,23 @@ export class ArenaScene extends Phaser.Scene {
     const enemyHpRatio = state ? state.enemy.hp / state.enemy.maxHp : 1;
     const rare = state?.lastReward?.rarity === "rare";
 
+    const moth = state?.enemy.id === "glasswing";
+    const veiled = state?.phase === "active" && state.enemy.intent === "veil";
+    const enemyBody = moth ? colors.smoke : colors.ember;
+    const enemyGlow = moth ? colors.violet : colors.ember;
+
     graphics.fillStyle(colors.violet, 0.2).fillCircle(playerX, centerY, 58);
     graphics.fillStyle(colors.violet, 1).fillCircle(playerX, centerY, 24);
     graphics.fillStyle(0xe8d5ff, 1).fillCircle(playerX - 6, centerY - 6, 6);
-    graphics.fillStyle(colors.ember, 0.2).fillCircle(enemyX, centerY, 70);
-    graphics.fillStyle(colors.ember, 1).fillCircle(enemyX, centerY, 35);
-    graphics.fillStyle(colors.emberBright, 1).fillCircle(enemyX + 11, centerY - 10, 6);
+    graphics.fillStyle(enemyGlow, 0.2).fillCircle(enemyX, centerY, 70);
+    graphics.fillStyle(enemyBody, 1).fillCircle(enemyX, centerY, 35);
+    graphics.fillStyle(moth ? colors.violet : colors.emberBright, 1).fillCircle(enemyX + 11, centerY - 10, 6);
 
-    if (state?.phase === "active" && state.enemy.intent === "cinder-burst") {
+    if (veiled) {
+      graphics.fillStyle(colors.violet, 0.28).fillCircle(enemyX, centerY, 64);
+      graphics.lineStyle(2, 0xe8d5ff, 0.7).strokeCircle(enemyX, centerY, 64);
+    }
+    if (state?.phase === "active" && (state.enemy.intent === "cinder-burst" || state.enemy.intent === "dust-bite")) {
       graphics.lineStyle(3, colors.emberBright, 0.85).strokeCircle(enemyX, centerY, 52);
     }
     if (state?.braced) {

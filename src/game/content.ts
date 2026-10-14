@@ -1,4 +1,4 @@
-import type { Enemy, Item, UpgradeId } from "./types";
+import type { Enemy, EncounterId, Intent, Item, UpgradeId } from "./types";
 
 export const starterItem: Item = {
   id: "cinderhook",
@@ -41,12 +41,49 @@ export const rareLoot: Item = {
   description: "A violet relic that hums with trapped lightning. Sought by collectors.",
 };
 
-export const createAshmaw = (): Enemy => ({
-  name: "Ashmaw",
-  hp: 12,
-  maxHp: 12,
-  intent: "cinder-burst",
-});
+export const collectionItems: Item[] = [starterItem, ...lootTable, rareLoot];
+
+export interface EncounterDefinition {
+  id: EncounterId;
+  name: string;
+  subtitle: string;
+  description: string;
+  opening: string;
+  maxHp: number;
+  pattern: Intent[];
+}
+
+export const encounters: Record<EncounterId, EncounterDefinition> = {
+  ashmaw: {
+    id: "ashmaw",
+    name: "Ashmaw",
+    subtitle: "Cinder brute",
+    description: "Telegraphs a heavy Cinder Burst, then bites. Brace the burst to keep your health.",
+    opening: "The Cinderwood Hunt begins. Ashmaw is gathering a Cinder Burst.",
+    maxHp: 12,
+    pattern: ["cinder-burst", "bite"],
+  },
+  glasswing: {
+    id: "glasswing",
+    name: "Glasswing Moth",
+    subtitle: "Veil stalker",
+    description: "Veils itself so Strikes only scratch, then Dust Bites hard. Strike the veil or Focus and wait.",
+    opening: "The Glasswing Moth drifts into its veil. Strikes will only scratch it.",
+    maxHp: 12,
+    pattern: ["veil", "dust-bite"],
+  },
+};
+
+export const createEncounter = (id: EncounterId): Enemy => {
+  const definition = encounters[id];
+  return {
+    id,
+    name: definition.name,
+    hp: definition.maxHp,
+    maxHp: definition.maxHp,
+    intent: definition.pattern[0],
+  };
+};
 
 export const upgradeLabels: Record<UpgradeId, { name: string; description: string }> = {
   edgecraft: {
@@ -57,4 +94,21 @@ export const upgradeLabels: Record<UpgradeId, { name: string; description: strin
     name: "Bulwark",
     description: "+1 Guard. Brace absorbs more.",
   },
+  veilsight: {
+    name: "Veilsight",
+    description: "+2 damage to Strikes against a veiled enemy.",
+  },
 };
+
+export interface Milestone {
+  id: string;
+  name: string;
+  encounterId: EncounterId;
+  wins: number;
+  reward: number;
+}
+
+export const milestones: Milestone[] = [
+  { id: "cinder-breaker", name: "Cinder Breaker", encounterId: "ashmaw", wins: 3, reward: 6 },
+  { id: "veil-piercer", name: "Veil Piercer", encounterId: "glasswing", wins: 3, reward: 6 },
+];
