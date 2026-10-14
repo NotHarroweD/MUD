@@ -8,6 +8,11 @@ let selectedItemId = "cinderhook";
 
 const healthLabel = (current: number, maximum: number): string => `${current} / ${maximum}`;
 
+const signed = (value: number): string => (value >= 0 ? `+${value}` : `${value}`);
+
+const traitLine = (item: Item): string =>
+  item.trait ? `<p class="trait-line"><b>${item.trait.name}.</b> ${item.trait.text}</p>` : "";
+
 const intentDetail: Record<Intent, { title: string; detail: string }> = {
   bite: { title: "Bite", detail: "A quick 2 damage attack is coming." },
   "cinder-burst": { title: "Cinder Burst", detail: "Heavy hit incoming. Brace to absorb your Guard." },
@@ -44,7 +49,8 @@ const itemCard = (item: Item, state: GameState, selected: boolean): string => {
       <div class="item-topline"><span class="rarity-tag">${item.rarity}</span>${isEquipped ? "<span class=\"equipped-tag\">equipped</span>" : ""}</div>
       <h3>${item.name}</h3>
       <p>${item.description}</p>
-      <dl class="item-stats"><div><dt>Power</dt><dd>+${item.power}</dd></div><div><dt>Guard</dt><dd>+${item.guard}</dd></div><div><dt>Value</dt><dd>${item.value}g</dd></div></dl>
+      ${traitLine(item)}
+      <dl class="item-stats"><div><dt>Power</dt><dd>${signed(item.power)}</dd></div><div><dt>Guard</dt><dd>${signed(item.guard)}</dd></div><div><dt>Value</dt><dd>${item.value}g</dd></div></dl>
       <div class="item-actions">
         <button class="quiet-button" data-action="inspect" data-item-id="${item.id}">Inspect</button>
         <button class="quiet-button" data-action="equip" data-item-id="${item.id}" ${isEquipped ? "disabled" : ""}>Equip</button>
@@ -148,19 +154,19 @@ export const renderApp = (
         <div><p class="eyebrow">MAKE YOUR MOVE</p><p class="action-hint">Every action advances the enemy. Read its intent first.</p></div>
         <div class="action-buttons">
           <button class="primary-button" data-game-action="${active ? "strike" : "start"}">${active ? "Strike" : state.phase === "victory" ? "Hunt Again" : "Begin Hunt"}<small>${active ? (state.enemy.intent === "veil" ? "1 damage while veiled" : `${powerOf(state.player)} damage`) : "Enter Cinderwood"}</small></button>
-          <button class="action-button" data-game-action="brace" ${active ? "" : "disabled"}>Brace<small>Reduce next hit by ${guardOf(state.player)}</small></button>
+          <button class="action-button" data-game-action="brace" ${active ? "" : "disabled"}>Brace<small>${active && state.enemy.intent === "veil" ? "No effect during a veil" : `Reduce next hit by ${guardOf(state.player)}`}</small></button>
           <button class="action-button" data-game-action="focus" ${active ? "" : "disabled"}>Focus<small>Restore 3 health</small></button>
         </div>
       </section>
 
       <section class="lower-grid">
         <article class="panel battle-log"><div class="panel-heading"><div><p class="eyebrow">HUNT LOG</p><h2>What happened</h2></div><button class="quiet-button" data-game-action="toggle-guaranteed-rare">${state.guaranteedRare ? "Disable rare test" : "Test rare loot"}</button></div><ol>${state.log.map((entry) => `<li>${entry}</li>`).join("")}</ol></article>
-        <article class="panel goal-card"><p class="eyebrow">NEXT MILESTONE</p><h2>${state.phase === "victory" ? "The trail opens" : "A name in the ash"}</h2><p>${goal}</p><ul class="milestone-list" aria-label="Milestones">${milestones.map((milestone) => `<li class="${state.titles.includes(milestone.id) ? "earned" : ""}"><span>${state.titles.includes(milestone.id) ? "✦ " : ""}${milestone.name}</span><b>${Math.min(state.encounterWins[milestone.encounterId], milestone.wins)} / ${milestone.wins} ${encounters[milestone.encounterId].name} wins</b></li>`).join("")}</ul>${state.lastReward ? `<div class="reward-reveal ${state.lastReward.rarity}"><span>${state.lastReward.rarity === "rare" ? "✦ RARE DISCOVERY" : "HUNT REWARD"}</span><strong>${state.lastReward.name}</strong><em>+${state.lastReward.power} Power · +${state.lastReward.guard} Guard · ${state.lastReward.value}g value</em></div>` : ""}</article>
+        <article class="panel goal-card"><p class="eyebrow">NEXT MILESTONE</p><h2>${state.phase === "victory" ? "The trail opens" : "A name in the ash"}</h2><p>${goal}</p><ul class="milestone-list" aria-label="Milestones">${milestones.map((milestone) => `<li class="${state.titles.includes(milestone.id) ? "earned" : ""}"><span>${state.titles.includes(milestone.id) ? "✦ " : ""}${milestone.name}</span><b>${Math.min(state.encounterWins[milestone.encounterId], milestone.wins)} / ${milestone.wins} ${encounters[milestone.encounterId].name} wins</b></li>`).join("")}</ul>${state.lastReward ? `<div class="reward-reveal ${state.lastReward.rarity}"><span>${state.lastReward.rarity === "rare" ? "✦ RARE DISCOVERY" : "HUNT REWARD"}</span><strong>${state.lastReward.name}</strong><em>+${state.lastReward.power} Power · ${signed(state.lastReward.guard)} Guard · ${state.lastReward.value}g value</em></div>` : ""}</article>
       </section>
 
       <section class="collection-grid">
         <article class="panel inventory-panel"><div class="panel-heading"><div><p class="eyebrow">PACK / ${state.player.inventory.length} ITEMS</p><h2>Relics carried</h2></div></div><div class="item-list">${state.player.inventory.map((item) => itemCard(item, state, item.id === selectedItemId)).join("")}</div><div class="collection-log"><p class="eyebrow">COLLECTION / ${state.discovered.length} OF ${collectionItems.length} FOUND</p><ul>${collectionItems.map((item) => `<li class="${state.discovered.includes(item.id) ? "found" : "missing"}">${state.discovered.includes(item.id) ? `${item.name} <span>${item.rarity}</span>` : "Undiscovered"}</li>`).join("")}</ul></div></article>
-        <article class="panel inspection-panel"><p class="eyebrow">ITEM INSPECTION</p><h2>${inspected.name}</h2><p>${inspected.description}</p><dl class="comparison"><div><dt>Current power</dt><dd>${powerOf(state.player)}</dd></div><div><dt>Current guard</dt><dd>${guardOf(state.player)}</dd></div><div><dt>Trade value</dt><dd>${inspected.value} gold</dd></div></dl><p class="inspection-note">${inspected.id === state.player.equippedId ? "This relic is currently shaping your build." : "Compare its stats, then equip it if the tradeoff matches your hunt plan."}</p></article>
+        <article class="panel inspection-panel"><p class="eyebrow">ITEM INSPECTION</p><h2>${inspected.name}</h2><p>${inspected.description}</p>${traitLine(inspected)}<dl class="comparison"><div><dt>Current power</dt><dd>${powerOf(state.player)}</dd></div><div><dt>Current guard</dt><dd>${guardOf(state.player)}</dd></div><div><dt>Trade value</dt><dd>${inspected.value} gold</dd></div></dl><p class="inspection-note">${inspected.id === state.player.equippedId ? "This relic is currently shaping your build." : "Compare its stats, then equip it if the tradeoff matches your hunt plan."}</p></article>
         <article class="panel upgrade-panel"><p class="eyebrow">LEVEL 2 SPECIALTY</p><h2>Spend knowledge</h2><p>Each specialty costs 8 gold. Edgecraft and Bulwark are general; Veilsight rewards hunting the Glasswing Moth.</p>${(["edgecraft", "bulwark", "veilsight"] as const).map((upgradeId) => `<button class="upgrade-button" data-game-action="upgrade" data-upgrade-id="${upgradeId}" ${canUpgrade && !state.player.upgrades.includes(upgradeId) ? "" : "disabled"}><span><strong>${upgradeLabels[upgradeId].name}</strong><small>${upgradeLabels[upgradeId].description}</small></span><b>${state.player.upgrades.includes(upgradeId) ? "Chosen" : "8g"}</b></button>`).join("")}</article>
       </section>
     </main>`;

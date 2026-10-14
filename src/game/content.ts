@@ -19,15 +19,25 @@ export const lootTable: Item[] = [
     guard: 2,
     value: 9,
     description: "A heat-hardened band that steadies your stance.",
+    trait: {
+      id: "steady-hand",
+      name: "Steady Hand",
+      text: "A successful Brace also restores 1 health.",
+    },
   },
   {
     id: "emberlens",
     name: "Ember Lens",
     rarity: "common",
     power: 2,
-    guard: 0,
+    guard: -1,
     value: 10,
-    description: "A sharp red lens that helps find an opening.",
+    description: "A sharp red lens that helps find an opening, at the cost of your guard.",
+    trait: {
+      id: "veil-keen",
+      name: "Veil Keen",
+      text: "+2 damage to Strikes against a veiled enemy.",
+    },
   },
 ];
 
@@ -39,6 +49,11 @@ export const rareLoot: Item = {
   guard: 1,
   value: 85,
   description: "A violet relic that hums with trapped lightning. Sought by collectors.",
+  trait: {
+    id: "stormcharge",
+    name: "Stormcharge",
+    text: "The first Strike of each hunt deals +2 damage.",
+  },
 };
 
 export const collectionItems: Item[] = [starterItem, ...lootTable, rareLoot];

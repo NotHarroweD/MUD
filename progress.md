@@ -44,3 +44,16 @@ Original prompt: Deliver the playable first milestone described in SHIMLAR_MMO_A
 - Verification: `npm test` 18/18; `npm run typecheck` clean; `npm run build` succeeds. Browser check confirmed the milestone list and three upgrade options render. Scripted hunt clicks in Chrome were unreliable for reading back state, so the milestone and Veilsight behavior are covered by tests only, not by a browser run.
 - Balance (calculated): a strike-only Glasswing fight with Veilsight takes about four strikes, versus six without it.
 - Open: whether the milestone rewards (6 gold) and titles motivate players is a playtest question.
+
+
+## 2026-10-13 — Item traits and duplicate salvage (priority 3, completed)
+
+- Committed the previous work as `69170e5` (local only, not pushed).
+- Added three item traits with real decisions attached:
+  - Glowing Ashband: Steady Hand, a successful Brace also restores 1 health.
+  - Ember Lens: Veil Keen, +2 damage to Strikes against a veiled enemy. Its guard changed from 0 to -1, so it trades defense for offense.
+  - Stormglass Fang: Stormcharge, the first Strike of each hunt deals +2 damage.
+- Duplicate rewards are no longer stacked: a reward you already carry is salvaged for half its value.
+- Relic cards, the inspection panel, and the reward reveal show traits, with signed stat values.
+- Verification: `npm test` 23/23; `npm run typecheck` clean; `npm run build` succeeds. Trait items are not yet checked in the browser; the logic is covered by tests only.
+- Balance (calculated, not playtested): Veil Keen and Veilsight stack on the moth, so a veiled strike with both equipped deals 5. Stormcharge makes the first hunt strike 2 harder.

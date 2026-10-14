@@ -66,3 +66,7 @@ h3 { font-size: 1.1rem; margin-bottom: 8px; }
 .milestone-list li { display: flex; justify-content: space-between; gap: 10px; font-size: .8rem; color: #9fb7a5; border-top: 1px solid rgba(169, 216, 180, .1); padding-top: 7px; }
 .milestone-list li.earned { color: #e5d5ff; }
 .milestone-list b { color: #bfd0c1; font-weight: 700; }
+
+
+.trait-line { color: #e7dcff; font-size: .76rem; line-height: 1.4; margin: 0 0 10px; }
+.trait-line b { color: #d7baff; font-weight: 800; }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { lootTable, rareLoot } from "../src/game/content";
 import { guardOf, powerOf, createInitialState, reduceGame } from "../src/game/engine";
 
 const winHunt = (state = createInitialState()) => {
@@ -203,7 +204,7 @@ describe("Specialization objectives", () => {
     state = winHunt(state);
     expect(state.titles).toContain("cinder-breaker");
     expect(state.encounterWins.ashmaw).toBe(3);
-    expect(state.player.gold).toBe(36 + 6);
+    expect(state.player.gold).toBe(36 + 6 + 4);
   });
 
   it("counts Glasswing wins separately and awards Veil Piercer once", () => {
@@ -228,5 +229,62 @@ describe("Specialization objectives", () => {
 
     state = reduceGame(state, { type: "strike" });
     expect(state.enemy.hp).toBe(12 - 3);
+  });
+});
+
+
+const withEquipped = (item: (typeof lootTable)[number], state = createInitialState()) => ({
+  ...state,
+  player: { ...state.player, inventory: [...state.player.inventory, item], equippedId: item.id },
+});
+
+describe("Item traits and salvage", () => {
+  it("applies Stormcharge to the first Strike of a hunt", () => {
+    let state = reduceGame(createInitialState(), { type: "toggle-guaranteed-rare" });
+    state = winHunt(state);
+    expect(state.lastReward?.id).toBe(rareLoot.id);
+    state = reduceGame(state, { type: "equip", itemId: rareLoot.id });
+
+    state = reduceGame(state, { type: "start" });
+    state = reduceGame(state, { type: "strike" });
+    expect(state.enemy.hp).toBe(12 - (powerOf(state.player) + 2));
+  });
+
+  it("applies Veil Keen to strikes against a veiled enemy", () => {
+    const emberLens = lootTable[1];
+    let state = withEquipped(emberLens);
+    state = reduceGame(state, { type: "select-encounter", encounterId: "glasswing" });
+    state = reduceGame(state, { type: "start" });
+    expect(state.enemy.intent).toBe("veil");
+
+    state = reduceGame(state, { type: "strike" });
+    expect(state.enemy.hp).toBe(12 - (1 + 2));
+  });
+
+  it("gives Ember Lens a guard cost in exchange for power", () => {
+    const state = withEquipped(lootTable[1]);
+    expect(guardOf(state.player)).toBe(0);
+    expect(powerOf(state.player)).toBe(3 + 2);
+  });
+
+  it("restores health when Steady Hand users Brace", () => {
+    let state = withEquipped(lootTable[0]);
+    state = reduceGame(state, { type: "start" });
+    state = { ...state, player: { ...state.player, hp: 10 } };
+
+    state = reduceGame(state, { type: "brace" });
+
+    expect(state.player.hp).toBe(10 + 1 - (5 - guardOf(withEquipped(lootTable[0]).player)));
+  });
+
+  it("salvages a duplicate reward for half its value instead of stacking it", () => {
+    let state = winHunt();
+    state = winHunt(state);
+    state = winHunt(state);
+
+    const copies = state.player.inventory.filter((item) => item.id === lootTable[0].id);
+    expect(copies).toHaveLength(1);
+    expect(state.player.inventory).toHaveLength(3);
+    expect(state.log.join(" ")).toContain("salvaged");
   });
 });

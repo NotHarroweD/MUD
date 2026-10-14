@@ -56,12 +56,14 @@ const rewardVictory = (state: GameState): GameState => {
       !state.titles.includes(milestone.id),
   );
   const milestoneGold = earned.reduce((sum, milestone) => sum + milestone.reward, 0);
+  const duplicate = state.player.inventory.some((item) => item.id === reward.id);
+  const salvage = duplicate ? Math.floor(reward.value / 2) : 0;
   const player = {
     ...state.player,
     experience,
     level,
-    gold: state.player.gold + 12 + milestoneGold,
-    inventory: [...state.player.inventory, reward],
+    gold: state.player.gold + 12 + milestoneGold + salvage,
+    inventory: duplicate ? state.player.inventory : [...state.player.inventory, reward],
   };
   const victory: GameState = {
     ...state,
@@ -74,7 +76,12 @@ const rewardVictory = (state: GameState): GameState => {
     lastReward: reward,
     braced: false,
   };
-  const withVictoryLog = addLog(victory, `Victory! +${XP_PER_LEVEL} experience, +12 gold, and ${reward.name}.`);
+  const withVictoryLog = addLog(
+    victory,
+    duplicate
+      ? `Victory! +${XP_PER_LEVEL} experience, +12 gold. You already carry ${reward.name}, so it was salvaged for ${salvage} gold.`
+      : `Victory! +${XP_PER_LEVEL} experience, +12 gold, and ${reward.name}.`,
+  );
 
   return earned.reduce(
     (current, milestone) => addLog(current, `Milestone reached: ${milestone.name}. +${milestone.reward} gold.`),
@@ -113,9 +120,13 @@ const takeTurn = (state: GameState, action: "strike" | "brace" | "focus"): GameS
 
   if (action === "strike") {
     const veiled = state.enemy.intent === "veil";
+    const trait = equippedItem(state.player).trait?.id;
+    const firstStrike = state.enemy.hp === state.enemy.maxHp;
     const veiledDamage =
       VEILED_STRIKE_DAMAGE + (state.player.upgrades.includes("veilsight") ? VEILSIGHT_BONUS : 0);
-    const damage = veiled ? veiledDamage : powerOf(state.player);
+    const traitBonus =
+      (veiled && trait === "veil-keen" ? 2 : 0) + (firstStrike && trait === "stormcharge" ? 2 : 0);
+    const damage = (veiled ? veiledDamage : powerOf(state.player)) + traitBonus;
     const hp = Math.max(0, state.enemy.hp - damage);
     const afterStrike = addLog(
       { ...state, enemy: { ...state.enemy, hp } },
@@ -129,7 +140,13 @@ const takeTurn = (state: GameState, action: "strike" | "brace" | "focus"): GameS
   }
 
   if (action === "brace") {
-    return resolveEnemyTurn(addLog({ ...state, braced: true }, "You Brace against the next hit."));
+    const heals = equippedItem(state.player).trait?.id === "steady-hand";
+    const hp = heals ? Math.min(state.player.maxHp, state.player.hp + 1) : state.player.hp;
+    const braced = addLog(
+      { ...state, braced: true, player: { ...state.player, hp } },
+      heals ? "You Brace. Steady Hand restores 1 health." : "You Brace against the next hit.",
+    );
+    return resolveEnemyTurn(braced);
   }
 
   const hp = Math.min(state.player.maxHp, state.player.hp + 3);

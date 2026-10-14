@@ -1,4 +1,10 @@
 export type Rarity = "common" | "rare";
+export type TraitId = "veil-keen" | "steady-hand" | "stormcharge";
+export interface ItemTrait {
+  id: TraitId;
+  name: string;
+  text: string;
+}
 export type Intent = "bite" | "cinder-burst" | "veil" | "dust-bite";
 export type Phase = "idle" | "active" | "victory" | "defeat";
 export type UpgradeId = "edgecraft" | "bulwark" | "veilsight";
@@ -12,6 +18,7 @@ export interface Item {
   guard: number;
   value: number;
   description: string;
+  trait?: ItemTrait;
 }
 
 export interface Player {
