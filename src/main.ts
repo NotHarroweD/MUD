@@ -1,6 +1,7 @@
 import Phaser from "phaser";
-import { createInitialState, reduceGame } from "./game/engine";
+import { createInitialState, powerOf, guardOf, hitChanceAgainst, spellHitChanceAgainst, spellPowerOf, reduceGame } from "./game/engine";
 import { ArenaScene } from "./game/scene";
+import { simulateFreshProgression, type DevSimulationReport } from "./game/devtools";
 import type { GameAction, GameState } from "./game/types";
 import { renderApp } from "./ui/app";
 import "./styles.css";
@@ -21,6 +22,7 @@ const appRoot: HTMLElement = root;
 let state: GameState = createInitialState();
 let sceneReady = false;
 let game: Phaser.Game | undefined;
+let devReport: DevSimulationReport | undefined;
 
 const attachCanvas = (): void => {
   const host = document.querySelector<HTMLElement>("#arena-canvas");
@@ -38,7 +40,11 @@ const updateScene = (): void => {
 };
 
 function render(): void {
-  renderApp(appRoot, state, dispatch, render);
+  renderApp(appRoot, state, dispatch, render, {
+    report: devReport,
+    reset: () => { state = createInitialState(); devReport = undefined; render(); },
+    simulate: () => { devReport = simulateFreshProgression(); render(); },
+  });
   attachCanvas();
   updateScene();
 }
@@ -74,13 +80,14 @@ window.render_game_to_text = () =>
   JSON.stringify({
     coordinateSystem: "canvas origin is top-left; illustrated actors appear left (player) and right (enemy)",
     phase: state.phase,
-    player: { hp: state.player.hp, maxHp: state.player.maxHp, power: state.player.basePower, guard: state.player.baseGuard, level: state.player.level, gold: state.player.gold },
-    enemy: { id: state.enemy.id, name: state.enemy.name, hp: state.enemy.hp, maxHp: state.enemy.maxHp, intent: state.enemy.intent },
+    location: { ...state.location, zone: state.location.zoneId },
+    player: { hp: state.player.hp, maxHp: state.player.maxHp, physicalDamage: powerOf(state.player), castingDamage: spellPowerOf(state.player), meleeHitChance: hitChanceAgainst(state.player, state.enemy), castingHitChance: spellHitChanceAgainst(state.player, state.enemy), guard: guardOf(state.player), attributes: state.player.attributes, level: state.player.level, experience: state.player.experience, gold: state.player.gold, bankedGold: state.player.bankedGold },
+    enemy: { id: state.enemy.id, name: state.enemy.name, hp: state.enemy.hp, maxHp: state.enemy.maxHp, intent: state.enemy.intent, evasion: state.enemy.evasion, magicDefense: state.enemy.magicDefense, zoneLevel: state.enemy.zoneLevel, wins: state.encounterWins[state.enemy.id] },
     turn: state.turn,
     braced: state.braced,
-    rareLootTest: state.guaranteedRare,
-    equipped: state.player.inventory.find((item) => item.id === state.player.equippedId)?.name,
-    reward: state.lastReward?.name,
+    rareMaterialTest: state.guaranteedRare,
+    equipped: Object.fromEntries(Object.entries(state.player.equipment).map(([slot, id]) => [slot, state.player.inventory.find((item) => item.id === id)?.name])),
+    reward: state.lastRewards?.material?.name,
   });
 
 window.advanceTime = () => {

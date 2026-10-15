@@ -67,7 +67,7 @@ The prototype has no persistence; state resets on refresh. Introducing persisten
 
 - Hosting, storage technology, and authentication provider. These need a decision before step 3; no account or service should be created without owner approval.
 - Whether encounter outcomes should be replayable by players for transparency, or kept server-only.
-- How to handle client latency for turn-based actions. Ashfall is turn-based, so a request-response loop is likely sufficient; real-time combat would need a different model.
+- How to handle client latency for turn-based actions. Never Ending Reign is turn-based, so a request-response loop is likely sufficient; real-time combat would need a different model.
 
 ## Verification for each step
 

@@ -1,4 +1,4 @@
-# Ashfall Frontier — first playable prototype
+# Never Ending Reign — first playable prototype
 
 An original browser-game vertical slice inspired by the progression, specialization, and discovery appeal researched from Shimlar. It is not a clone and uses no Shimlar code, art, prose, data, or branding.
 

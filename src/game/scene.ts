@@ -47,53 +47,35 @@ export class ArenaScene extends Phaser.Scene {
       graphics.fillStyle(colors.smoke, 0.18).fillCircle(x, y, 3 + (index % 3));
     }
 
+    if (!state || state.phase === "idle") return;
+
     const playerX = width * 0.3;
     const enemyX = width * 0.7;
     const centerY = height * 0.62;
-    const playerHpRatio = state ? state.player.hp / state.player.maxHp : 1;
-    const enemyHpRatio = state ? state.enemy.hp / state.enemy.maxHp : 1;
-    const rare = state?.lastReward?.rarity === "rare";
 
     const moth = state?.enemy.id === "glasswing";
-    const veiled = state?.phase === "active" && state.enemy.intent === "veil";
-    const enemyBody = moth ? colors.smoke : colors.ember;
-    const enemyGlow = moth ? colors.violet : colors.ember;
+    const gardenPalette = [0x9acb71, 0x67bdb0, 0xd2a45d, 0xb87955, 0xb68ce0, 0x8eae63, 0x68a9bb, 0x9a9c72, 0x9b77bd, 0xe0b86f];
+    const gardenIndex = state?.enemy.id.startsWith("garden-") ? ["garden-sproutling", "garden-dewling", "garden-petal-mite", "garden-thornbud", "garden-pollen-wisp", "garden-bramble-pup", "garden-glasscap-toad", "garden-rootbound-stag", "garden-duskwing-matriarch", "garden-warden"].indexOf(state.enemy.id) : -1;
+    const gardenColor = gardenPalette[Math.max(0, gardenIndex)];
+    const enemyBody = moth ? colors.smoke : gardenIndex >= 0 ? gardenColor : colors.ember;
+    const enemyGlow = moth ? colors.violet : gardenIndex >= 0 ? gardenColor : colors.ember;
+    const enemyRadius = gardenIndex >= 0 ? 23 + gardenIndex * 1.25 : 35;
 
     graphics.fillStyle(colors.violet, 0.2).fillCircle(playerX, centerY, 58);
     graphics.fillStyle(colors.violet, 1).fillCircle(playerX, centerY, 24);
     graphics.fillStyle(0xe8d5ff, 1).fillCircle(playerX - 6, centerY - 6, 6);
-    graphics.fillStyle(enemyGlow, 0.2).fillCircle(enemyX, centerY, 70);
-    graphics.fillStyle(enemyBody, 1).fillCircle(enemyX, centerY, 35);
+    graphics.fillStyle(enemyGlow, 0.2).fillCircle(enemyX, centerY, enemyRadius * 2);
+    graphics.fillStyle(enemyBody, 1).fillCircle(enemyX, centerY, enemyRadius);
     graphics.fillStyle(moth ? colors.violet : colors.emberBright, 1).fillCircle(enemyX + 11, centerY - 10, 6);
 
-    if (veiled) {
-      graphics.fillStyle(colors.violet, 0.28).fillCircle(enemyX, centerY, 64);
-      graphics.lineStyle(2, 0xe8d5ff, 0.7).strokeCircle(enemyX, centerY, 64);
+    if (gardenIndex === 3 || gardenIndex === 7 || gardenIndex === 9) {
+      graphics.fillStyle(enemyBody, 1)
+        .fillTriangle(enemyX - enemyRadius * 0.75, centerY - enemyRadius * 0.55, enemyX - enemyRadius * 1.15, centerY - enemyRadius * 1.3, enemyX - enemyRadius * 0.2, centerY - enemyRadius * 0.85)
+        .fillTriangle(enemyX + enemyRadius * 0.75, centerY - enemyRadius * 0.55, enemyX + enemyRadius * 1.15, centerY - enemyRadius * 1.3, enemyX + enemyRadius * 0.2, centerY - enemyRadius * 0.85);
     }
-    if (state?.phase === "active" && (state.enemy.intent === "cinder-burst" || state.enemy.intent === "dust-bite")) {
-      graphics.lineStyle(3, colors.emberBright, 0.85).strokeCircle(enemyX, centerY, 52);
-    }
+
     if (state?.braced) {
       graphics.lineStyle(4, colors.violet, 0.9).strokeCircle(playerX, centerY, 40);
     }
-    if (rare) {
-      graphics.lineStyle(3, colors.violet, 0.95).strokeCircle(width * 0.5, height * 0.28, 23);
-      graphics.fillStyle(colors.violet, 1).fillTriangle(width * 0.5, height * 0.21, width * 0.47, height * 0.31, width * 0.53, height * 0.31);
-    }
-
-    this.drawBar(graphics, playerX - 56, centerY + 64, 112, playerHpRatio, colors.violet);
-    this.drawBar(graphics, enemyX - 56, centerY + 64, 112, enemyHpRatio, colors.ember);
-  }
-
-  private drawBar(
-    graphics: Phaser.GameObjects.Graphics,
-    x: number,
-    y: number,
-    width: number,
-    ratio: number,
-    color: number,
-  ): void {
-    graphics.fillStyle(0x07100f, 0.9).fillRoundedRect(x, y, width, 8, 4);
-    graphics.fillStyle(color, 0.95).fillRoundedRect(x + 2, y + 2, Math.max(0, (width - 4) * ratio), 4, 2);
   }
 }
